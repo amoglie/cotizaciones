@@ -34,11 +34,20 @@ def index():
             return jsonify({'error': 'Error al obtener datos del dólar'}), 500
         
         data_dolar = response_dolar.json()
+        logging.info(f"Datos del dólar recibidos: {data_dolar}")
+
         tipos_dolar = ['CCL', 'Tarjeta', 'MEP']
 
         # Verificar la existencia de las claves antes de crear el DataFrame
         data_dolar_filtrado = {k: data_dolar[k] for k in tipos_dolar if k in data_dolar}
         df_dolar = pd.DataFrame(data_dolar_filtrado).T
+        logging.info(f"DataFrame del dólar: {df_dolar}")
+
+        # Verificar si la columna 'ask' está presente
+        if 'ask' not in df_dolar.columns:
+            logging.error("La columna 'ask' no está presente en los datos del dólar")
+            return jsonify({'error': "La columna 'ask' no está presente en los datos del dólar"}), 500
+        
         df_dolar = df_dolar[['ask']]
 
         # Visualización
