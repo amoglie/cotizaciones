@@ -1,55 +1,72 @@
-from flask import Flask, render_template_string
+from flask import Flask, render_template_string, jsonify
 import requests
 import pandas as pd
 import plotly.express as px
 import plotly.io as pio
+import logging
 
 app = Flask(__name__)
 
+# Configuración de registros
+logging.basicConfig(level=logging.INFO)
+
 @app.route('/')
 def index():
-    # Endpoints de las APIs
-    usdt_url = "https://criptoya.com/api/usdt/ars"
-    dolar_url = "https://criptoya.com/api/dolar"
+    try:
+        # Endpoints de las APIs
+        usdt_url = "https://criptoya.com/api/usdt/ars"
+        dolar_url = "https://criptoya.com/api/dolar"
 
-    # Obtener datos de la API de USDT
-    response_usdt = requests.get(usdt_url)
-    data_usdt = response_usdt.json()
-    df_usdt = pd.DataFrame(data_usdt).T
-    df_usdt = df_usdt[['ask']]
+        # Obtener datos de la API de USDT
+        response_usdt = requests.get(usdt_url)
+        if response_usdt.status_code != 200:
+            logging.error(f"Error al obtener datos de USDT: {response_usdt.status_code}")
+            return jsonify({'error': 'Error al obtener datos de USDT'}), 500
+        
+        data_usdt = response_usdt.json()
+        df_usdt = pd.DataFrame(data_usdt).T
+        df_usdt = df_usdt[['ask']]
 
-    # Obtener datos de la API del dólar
-    response_dolar = requests.get(dolar_url)
-    data_dolar = response_dolar.json()
-    tipos_dolar = ['CCL', 'Tarjeta', 'MEP']
+        # Obtener datos de la API del dólar
+        response_dolar = requests.get(dolar_url)
+        if response_dolar.status_code != 200:
+            logging.error(f"Error al obtener datos del dólar: {response_dolar.status_code}")
+            return jsonify({'error': 'Error al obtener datos del dólar'}), 500
+        
+        data_dolar = response_dolar.json()
+        tipos_dolar = ['CCL', 'Tarjeta', 'MEP']
 
-    # Verificar la existencia de las claves antes de crear el DataFrame
-    data_dolar_filtrado = {k: data_dolar[k] for k in tipos_dolar if k in data_dolar}
-    df_dolar = pd.DataFrame(data_dolar_filtrado).T
-    df_dolar = df_dolar[['ask']]
+        # Verificar la existencia de las claves antes de crear el DataFrame
+        data_dolar_filtrado = {k: data_dolar[k] for k in tipos_dolar if k in data_dolar}
+        df_dolar = pd.DataFrame(data_dolar_filtrado).T
+        df_dolar = df_dolar[['ask']]
 
-    # Visualización
-    fig_usdt = px.bar(df_usdt, x=df_usdt.index, y='ask', title='Precio de compra de USDT en diferentes exchanges')
-    fig_dolar = px.bar(df_dolar, x=df_dolar.index, y='ask', title='Precio de compra de diferentes tipos de dólar')
+        # Visualización
+        fig_usdt = px.bar(df_usdt, x=df_usdt.index, y='ask', title='Precio de compra de USDT en diferentes exchanges')
+        fig_dolar = px.bar(df_dolar, x=df_dolar.index, y='ask', title='Precio de compra de diferentes tipos de dólar')
 
-    # Convertir las figuras a HTML
-    usdt_plot_html = pio.to_html(fig_usdt, full_html=False)
-    dolar_plot_html = pio.to_html(fig_dolar, full_html=False)
+        # Convertir las figuras a HTML
+        usdt_plot_html = pio.to_html(fig_usdt, full_html=False)
+        dolar_plot_html = pio.to_html(fig_dolar, full_html=False)
 
-    # Renderizar los gráficos en una página HTML
-    html = f"""
-    <html>
-    <head><title>Dashboard</title></head>
-    <body>
-    <h1>Dashboard</h1>
-    <h2>Precio de compra de USDT en diferentes exchanges</h2>
-    {usdt_plot_html}
-    <h2>Precio de compra de diferentes tipos de dólar</h2>
-    {dolar_plot_html}
-    </body>
-    </html>
-    """
-    return render_template_string(html)
+        # Renderizar los gráficos en una página HTML
+        html = f"""
+        <html>
+        <head><title>Dashboard</title></head>
+        <body>
+        <h1>Dashboard</h1>
+        <h2>Precio de compra de USDT en diferentes exchanges</h2>
+        {usdt_plot_html}
+        <h2>Precio de compra de diferentes tipos de dólar</h2>
+        {dolar_plot_html}
+        </body>
+        </html>
+        """
+        return render_template_string(html)
+    
+    except Exception as e:
+        logging.error(f"Error en el servidor: {e}")
+        return jsonify({'error': 'Error en el servidor'}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000)  # Cambiado a puerto 8000
+    app.run(host='0.0.0.0', port=8000)
