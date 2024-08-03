@@ -22,7 +22,10 @@ def index():
     response_dolar = requests.get(dolar_url)
     data_dolar = response_dolar.json()
     tipos_dolar = ['CCL', 'Tarjeta', 'MEP']
-    df_dolar = pd.DataFrame({k: data_dolar[k] for k in tipos_dolar}).T
+
+    # Verificar la existencia de las claves antes de crear el DataFrame
+    data_dolar_filtrado = {k: data_dolar[k] for k in tipos_dolar if k in data_dolar}
+    df_dolar = pd.DataFrame(data_dolar_filtrado).T
     df_dolar = df_dolar[['ask']]
 
     # Visualización
