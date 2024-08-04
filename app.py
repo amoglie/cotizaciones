@@ -81,9 +81,19 @@ def index():
             <div class="container p-4">
                 <h1 class="text-2xl font-bold mb-4">Dashboard</h1>
                 <div class="mb-4 text-right">
-                    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onclick="location.reload()">Refrescar</button>
+                    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onclick="location.reload()">Actualizar</button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="card p-4 rounded-lg">
+                        <h2 class="text-xl font-semibold mb-2">Cotizaciones</h2>
+                        {tabla_html}
+                    </div>
+                    <div class="card p-4 rounded-lg">
+                        <h2 class="text-xl font-semibold mb-2">Mejor opción de compra</h2>
+                        <p class="text-lg">La mejor opción de compra es <span class="font-bold">{mejor_opcion}</span> con un precio de <span class="font-bold">${mejor_precio:.2f}</span></p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="card p-4 rounded-lg">
                         <h2 class="text-xl font-semibold mb-2">Precio de compra de diferentes tipos de dólar y USDT</h2>
                         {dolar_plot_html}
@@ -92,14 +102,6 @@ def index():
                         <h2 class="text-xl font-semibold mb-2">Precio de venta de diferentes tipos de dólar y USDT</h2>
                         {venta_plot_html}
                     </div>
-                </div>
-                <div class="card p-4 rounded-lg mb-6">
-                    <h2 class="text-xl font-semibold mb-2">Cotizaciones</h2>
-                    {tabla_html}
-                </div>
-                <div class="card p-4 rounded-lg">
-                    <h2 class="text-xl font-semibold mb-2">Mejor opción de compra</h2>
-                    <p class="text-lg">La mejor opción de compra es <span class="font-bold">{mejor_opcion}</span> con un precio de <span class="font-bold">${mejor_precio:.2f}</span></p>
                 </div>
             </div>
         </body>
