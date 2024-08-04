@@ -1,4 +1,58 @@
-@app.route('/')
+from flask import Flask, render_template_string, jsonify
+import requests
+import pandas as pd
+import plotly.express as px
+import plotly.io as pio
+import logging
+from pycoingecko import CoinGeckoAPI
+
+app = Flask(__name__)
+cg = CoinGeckoAPI()
+
+# Configuración de registros
+logging.basicConfig(level=logging.INFO)
+
+def get_crypto_data():
+    try:
+        # Obtener las 10 principales criptomonedas por capitalización de mercado
+        coins = cg.get_coins_markets(vs_currency='usd', order='market_cap_desc', per_page=10, page=1, sparkline=False)
+        
+        # Crear un DataFrame con los datos relevantes
+        df_crypto = pd.DataFrame(coins)[['name', 'image', 'current_price', 'price_change_percentage_24h']]
+        df_crypto.columns = ['Nombre', 'Logo', 'Precio (USD)', 'Cambio 24h (%)']
+        
+        return df_crypto
+    except Exception as e:
+        logging.error(f"Error al obtener datos de criptomonedas: {e}")
+        return pd.DataFrame()
+
+def get_usdt_data():
+    try:
+        # Obtener datos de la API de criptoya
+        response = requests.get("https://criptoya.com/api/usdt/ars")
+        data = response.json()
+        
+        # Opciones permitidas
+        opciones_permitidas = [
+            'lemoncash', 'belo', 'fiwind', 'buenbit', 'bybit', 
+            'tiendacrypto', 'letsbit', 'cocos crypto', 'ripio', 'binance'
+        ]
+        
+        # Crear DataFrame con los datos relevantes
+        df = pd.DataFrame([(exchange, info['ask'], info['bid']) 
+                           for exchange, info in data.items() 
+                           if isinstance(info, dict) and 'ask' in info and 'bid' in info and exchange in opciones_permitidas],
+                          columns=['Exchange', 'Compra (ARS)', 'Venta (ARS)'])
+        
+        # Identificar mejores opciones
+        mejor_compra = df.loc[df['Compra (ARS)'].idxmin()]
+        mejor_venta = df.loc[df['Venta (ARS)'].idxmax()]
+        
+        return df, mejor_compra, mejor_venta
+    except Exception as e:
+        logging.error(f"Error al obtener datos de USDT: {e}")
+        return pd.DataFrame(), None, None
+        @app.route('/')
 def index():
     try:
         # Endpoint de la API del dólar
@@ -10,15 +64,15 @@ def index():
             logging.error(f"Error al obtener datos del dólar: {response_dolar.status_code}")
             return jsonify({'error': 'Error al obtener datos del dólar'}), 500
 
-            data_dolar = response_dolar.json()
-            logging.info(f"Datos del dólar recibidos: {data_dolar}")
+        data_dolar = response_dolar.json()
+        logging.info(f"Datos del dólar recibidos: {data_dolar}")
 
         # Filtrar los datos relevantes
         tipos_dolar = {
-        'CCL': {'compra': data_dolar['ccl']['al30']['24hs']['price'], 'venta': data_dolar['ccl']['al30']['ci']['price']},
-        'Tarjeta': {'compra': data_dolar['tarjeta']['price'], 'venta': data_dolar['tarjeta']['price']},
-        'MEP': {'compra': data_dolar['mep']['al30']['24hs']['price'], 'venta': data_dolar['mep']['al30']['ci']['price']},
-        'USDT': {'compra': data_dolar['cripto']['usdt']['ask'], 'venta': data_dolar['cripto']['usdt']['bid']}
+            'CCL': {'compra': data_dolar['ccl']['al30']['24hs']['price'], 'venta': data_dolar['ccl']['al30']['ci']['price']},
+            'Tarjeta': {'compra': data_dolar['tarjeta']['price'], 'venta': data_dolar['tarjeta']['price']},
+            'MEP': {'compra': data_dolar['mep']['al30']['24hs']['price'], 'venta': data_dolar['mep']['al30']['ci']['price']},
+            'USDT': {'compra': data_dolar['cripto']['usdt']['ask'], 'venta': data_dolar['cripto']['usdt']['bid']}
         }
 
         # Crear DataFrame
@@ -44,8 +98,7 @@ def index():
         # Convertir las figuras a HTML
         dolar_plot_html = pio.to_html(fig_dolar, full_html=False)
         venta_plot_html = pio.to_html(fig_venta, full_html=False)
-
-        # Obtener datos de criptomonedas
+                # Obtener datos de criptomonedas
         df_crypto = get_crypto_data()
         
         # Crear tabla HTML para datos de criptomonedas con logos e iconos
@@ -61,23 +114,23 @@ def index():
                 <td>${row['Precio (USD)']:.2f}</td>
                 <td class="{color}">{icon} {change:.2f}%</td>
                 </tr>
-                """)
-            tabla_crypto_html = f"""
-            <table class="table-auto w-full text-left border-collapse">
-            <thead>
-            <tr>
-            <th>Logo</th>
-            <th>Nombre</th>
-            <th>Precio (USD)</th>
-            <th>Cambio 24h</th>
-            </tr>
-            </thead>
-            <tbody>
-            {''.join(crypto_rows)}
-            </tbody>
-            </table>
-            """
-            
+            """)
+        tabla_crypto_html = f"""
+        <table class="table-auto w-full text-left border-collapse">
+        <thead>
+        <tr>
+        <th>Logo</th>
+        <th>Nombre</th>
+        <th>Precio (USD)</th>
+        <th>Cambio 24h</th>
+        </tr>
+        </thead>
+        <tbody>
+        {''.join(crypto_rows)}
+        </tbody>
+        </table>
+        """
+        
         # Obtener datos de USDT
         df_usdt, mejor_compra, mejor_venta = get_usdt_data()
         
@@ -92,23 +145,22 @@ def index():
                 <td class="{compra_class}">${row['Compra (ARS)']:.2f}</td>
                 <td class="{venta_class}">${row['Venta (ARS)']:.2f}</td>
                 </tr>
-                """)
-            tabla_usdt_html = f"""
-            <table class="table-auto w-full text-left border-collapse">
-            <thead>
-            <tr>
-            <th>Exchange</th>
-            <th>Compra (ARS)</th>
-            <th>Venta (ARS)</th>
-            </tr>
-            </thead>
-            <tbody>
-            {''.join(usdt_rows)}
-            </tbody>
-            </table>
-            """
-
-        # Renderizar la página HTML con Tailwind CSS
+            """)
+        tabla_usdt_html = f"""
+        <table class="table-auto w-full text-left border-collapse">
+        <thead>
+        <tr>
+        <th>Exchange</th>
+        <th>Compra (ARS)</th>
+        <th>Venta (ARS)</th>
+        </tr>
+        </thead>
+        <tbody>
+        {''.join(usdt_rows)}
+        </tbody>
+        </table>
+        """
+                # Renderizar la página HTML con Tailwind CSS
         html = f"""
         <!DOCTYPE html>
         <html lang="es">
@@ -161,6 +213,10 @@ def index():
         </body>
         </html>
         """
-        
-        if __name__ == '__main__':
-            app.run(host='0.0.0.0', port=8000)
+        return render_template_string(html)
+    except Exception as e:
+        logging.error(f"Error en el servidor: {e}")
+        return jsonify({'error': 'Error en el servidor'}), 500
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8000)
