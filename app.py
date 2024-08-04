@@ -52,7 +52,8 @@ def get_usdt_data():
     except Exception as e:
         logging.error(f"Error al obtener datos de USDT: {e}")
         return pd.DataFrame(), None, None
-        @app.route('/')
+
+@app.route('/')
 def index():
     try:
         # Endpoint de la API del dólar
@@ -98,7 +99,8 @@ def index():
         # Convertir las figuras a HTML
         dolar_plot_html = pio.to_html(fig_dolar, full_html=False)
         venta_plot_html = pio.to_html(fig_venta, full_html=False)
-                # Obtener datos de criptomonedas
+
+        # Obtener datos de criptomonedas
         df_crypto = get_crypto_data()
         
         # Crear tabla HTML para datos de criptomonedas con logos e iconos
@@ -160,7 +162,7 @@ def index():
         </tbody>
         </table>
         """
-                # Renderizar la página HTML con Tailwind CSS
+        # Renderizar la página HTML con Tailwind CSS
         html = f"""
         <!DOCTYPE html>
         <html lang="es">
@@ -175,7 +177,9 @@ def index():
         .container {{ max-width: 1200px; margin: auto; }}
         .card {{ background-color: #2d3748; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }}
         table {{ border-collapse: collapse; width: 100%; }}
-        th, td {{ border: 1px solid #4a5568; padding: 0.5rem; text-align: left; }}
+       
+
+ th, td {{ border: 1px solid #4a5568; padding: 0.5rem; text-align: left; }}
         th {{ background-color: #2d3748; }}
         tr:nth-child(even) {{ background-color: #2d3748; }}
         .bg-green-500 {{ background-color: #48bb78; }}
