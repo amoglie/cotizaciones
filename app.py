@@ -13,19 +13,8 @@ logging.basicConfig(level=logging.INFO)
 @app.route('/')
 def index():
     try:
-        # Endpoints de las APIs
-        usdt_url = "https://criptoya.com/api/usdt/ars"
+        # Endpoint de la API del dólar
         dolar_url = "https://criptoya.com/api/dolar"
-
-        # Obtener datos de la API de USDT
-        response_usdt = requests.get(usdt_url)
-        if response_usdt.status_code != 200:
-            logging.error(f"Error al obtener datos de USDT: {response_usdt.status_code}")
-            return jsonify({'error': 'Error al obtener datos de USDT'}), 500
-        
-        data_usdt = response_usdt.json()
-        df_usdt = pd.DataFrame(data_usdt).T
-        df_usdt = df_usdt[['ask']]
 
         # Obtener datos de la API del dólar
         response_dolar = requests.get(dolar_url)
@@ -36,26 +25,22 @@ def index():
         data_dolar = response_dolar.json()
         logging.info(f"Datos del dólar recibidos: {data_dolar}")
 
-        tipos_dolar = ['CCL', 'Tarjeta', 'MEP']
+        # Filtrar los datos relevantes
+        tipos_dolar = {
+            'CCL': data_dolar['ccl'],
+            'Tarjeta': data_dolar['tarjeta'],
+            'MEP': data_dolar['mep']['al30']['24hs'],
+            'USDT': data_dolar['cripto']['usdt']
+        }
 
-        # Verificar la existencia de las claves antes de crear el DataFrame
-        data_dolar_filtrado = {k: data_dolar[k] for k in tipos_dolar if k in data_dolar}
-        df_dolar = pd.DataFrame(data_dolar_filtrado).T
-        logging.info(f"DataFrame del dólar: {df_dolar}")
-
-        # Verificar si la columna 'ask' está presente
-        if 'ask' not in df_dolar.columns:
-            logging.error("La columna 'ask' no está presente en los datos del dólar")
-            return jsonify({'error': "La columna 'ask' no está presente en los datos del dólar"}), 500
-        
-        df_dolar = df_dolar[['ask']]
+        # Crear DataFrame
+        df_dolar = pd.DataFrame(tipos_dolar).T
+        df_dolar = df_dolar[['ask', 'price']] if 'price' in df_dolar.columns else df_dolar[['ask']]
 
         # Visualización
-        fig_usdt = px.bar(df_usdt, x=df_usdt.index, y='ask', title='Precio de compra de USDT en diferentes exchanges')
-        fig_dolar = px.bar(df_dolar, x=df_dolar.index, y='ask', title='Precio de compra de diferentes tipos de dólar')
+        fig_dolar = px.bar(df_dolar, x=df_dolar.index, y='ask', title='Precio de compra de diferentes tipos de dólar y USDT')
 
         # Convertir las figuras a HTML
-        usdt_plot_html = pio.to_html(fig_usdt, full_html=False)
         dolar_plot_html = pio.to_html(fig_dolar, full_html=False)
 
         # Renderizar los gráficos en una página HTML
@@ -64,9 +49,7 @@ def index():
         <head><title>Dashboard</title></head>
         <body>
         <h1>Dashboard</h1>
-        <h2>Precio de compra de USDT en diferentes exchanges</h2>
-        {usdt_plot_html}
-        <h2>Precio de compra de diferentes tipos de dólar</h2>
+        <h2>Precio de compra de diferentes tipos de dólar y USDT</h2>
         {dolar_plot_html}
         </body>
         </html>
