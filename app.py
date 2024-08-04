@@ -48,7 +48,82 @@ def get_usdt_data():
 @app.route('/')
 def index():
     try:
-        # ... (el código para los datos del dólar y criptomonedas permanece igual)
+        # Endpoint de la API del dólar
+        dolar_url = "https://criptoya.com/api/dolar"
+
+        # Obtener datos de la API del dólar
+        response_dolar = requests.get(dolar_url)
+        if response_dolar.status_code != 200:
+            logging.error(f"Error al obtener datos del dólar: {response_dolar.status_code}")
+            return jsonify({'error': 'Error al obtener datos del dólar'}), 500
+        
+        data_dolar = response_dolar.json()
+        logging.info(f"Datos del dólar recibidos: {data_dolar}")
+
+        # Filtrar los datos relevantes
+        tipos_dolar = {
+            'CCL': {'compra': data_dolar['ccl']['al30']['24hs']['price'], 'venta': data_dolar['ccl']['al30']['ci']['price']},
+            'Tarjeta': {'compra': data_dolar['tarjeta']['price'], 'venta': data_dolar['tarjeta']['price']},
+            'MEP': {'compra': data_dolar['mep']['al30']['24hs']['price'], 'venta': data_dolar['mep']['al30']['ci']['price']},
+            'USDT': {'compra': data_dolar['cripto']['usdt']['ask'], 'venta': data_dolar['cripto']['usdt']['bid']}
+        }
+
+        # Crear DataFrame
+        df_dolar = pd.DataFrame(tipos_dolar).T
+
+        # Identificar la mejor opción de compra
+        mejor_opcion = df_dolar['compra'].idxmin()
+        mejor_precio = df_dolar.loc[mejor_opcion, 'compra']
+
+        # Crear tabla HTML para datos del dólar
+        tabla_html = df_dolar.to_html(classes="table-auto w-full text-left border-collapse")
+
+        # Visualización: Gráfico de barras para los precios de compra (compra)
+        fig_dolar = px.bar(df_dolar, x=df_dolar.index, y='compra', text='compra', title='Precio de compra de diferentes tipos de dólar y USDT', height=300)
+        fig_dolar.update_layout(yaxis=dict(title='Precio (ARS)'), xaxis=dict(title='Tipo de Cambio'))
+        fig_dolar.update_traces(texttemplate='%{text:.2f}', textposition='outside')
+
+        # Visualización: Gráfico de barras para los precios de venta (venta)
+        fig_venta = px.bar(df_dolar, x=df_dolar.index, y='venta', text='venta', title='Precio de venta de diferentes tipos de dólar y USDT', height=300)
+        fig_venta.update_layout(yaxis=dict(title='Precio (ARS)'), xaxis=dict(title='Tipo de Cambio'))
+        fig_venta.update_traces(texttemplate='%{text:.2f}', textposition='outside')
+
+        # Convertir las figuras a HTML
+        dolar_plot_html = pio.to_html(fig_dolar, full_html=False)
+        venta_plot_html = pio.to_html(fig_venta, full_html=False)
+
+        # Obtener datos de criptomonedas
+        df_crypto = get_crypto_data()
+        
+        # Crear tabla HTML para datos de criptomonedas con logos e iconos
+        crypto_rows = []
+        for _, row in df_crypto.iterrows():
+            change = row['Cambio 24h (%)']
+            icon = '▲' if change > 0 else '▼'
+            color = 'text-green-500' if change > 0 else 'text-red-500'
+            crypto_rows.append(f"""
+                <tr>
+                    <td><img src="{row['Logo']}" alt="{row['Nombre']}" class="w-8 h-8"></td>
+                    <td>{row['Nombre']}</td>
+                    <td>${row['Precio (USD)']:.2f}</td>
+                    <td class="{color}">{icon} {change:.2f}%</td>
+                </tr>
+            """)
+        tabla_crypto_html = f"""
+            <table class="table-auto w-full text-left border-collapse">
+                <thead>
+                    <tr>
+                        <th>Logo</th>
+                        <th>Nombre</th>
+                        <th>Precio (USD)</th>
+                        <th>Cambio 24h</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {''.join(crypto_rows)}
+                </tbody>
+            </table>
+        """
 
         # Obtener datos de USDT
         df_usdt, mejor_compra, mejor_venta = get_usdt_data()
