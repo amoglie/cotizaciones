@@ -84,7 +84,7 @@ def index():
         mejor_precio = df_dolar.loc[mejor_opcion, 'compra']
 
         # Crear tabla HTML para datos del dólar
-        tabla_html = df_dolar.style.applymap(lambda v: 'background-color: #48bb78' if v == mejor_precio else '', subset=['compra']).render()
+        tabla_html = df_dolar.style.apply(lambda x: ['background-color: #48bb78' if v == mejor_precio else '' for v in x], subset=['compra']).to_html()
 
         # Visualización: Gráfico de barras para los precios de compra (compra)
         fig_dolar = px.bar(df_dolar, x=df_dolar.index, y='compra', text='compra', title='Precio de compra de diferentes tipos de dólar y USDT', height=300)
@@ -162,6 +162,7 @@ def index():
         </tbody>
         </table>
         """
+
         # Renderizar la página HTML con Tailwind CSS
         html = f"""
         <!DOCTYPE html>
@@ -177,9 +178,7 @@ def index():
         .container {{ max-width: 1200px; margin: auto; }}
         .card {{ background-color: #2d3748; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }}
         table {{ border-collapse: collapse; width: 100%; }}
-       
-
- th, td {{ border: 1px solid #4a5568; padding: 0.5rem; text-align: left; }}
+        th, td {{ border: 1px solid #4a5568; padding: 0.5rem; text-align: left; }}
         th {{ background-color: #2d3748; }}
         tr:nth-child(even) {{ background-color: #2d3748; }}
         .bg-green-500 {{ background-color: #48bb78; }}
