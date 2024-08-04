@@ -26,40 +26,56 @@ def get_crypto_data():
         logging.error(f"Error al obtener datos de criptomonedas: {e}")
         return pd.DataFrame()
 
+def get_usdt_data():
+    try:
+        # Obtener datos de la API de criptoya
+        response = requests.get("https://criptoya.com/api/usdt/ars")
+        data = response.json()
+        
+        # Crear DataFrame con los datos relevantes
+        df = pd.DataFrame([(exchange, info['ask'], info['bid']) for exchange, info in data.items() if isinstance(info, dict) and 'ask' in info and 'bid' in info],
+                          columns=['Exchange', 'Compra (ARS)', 'Venta (ARS)'])
+        
+        # Identificar mejores opciones
+        mejor_compra = df.loc[df['Compra (ARS)'].idxmin()]
+        mejor_venta = df.loc[df['Venta (ARS)'].idxmax()]
+        
+        return df, mejor_compra, mejor_venta
+    except Exception as e:
+        logging.error(f"Error al obtener datos de USDT: {e}")
+        return pd.DataFrame(), None, None
+
 @app.route('/')
 def index():
     try:
-        # ... (el código para los datos del dólar permanece igual)
+        # ... (el código para los datos del dólar y criptomonedas permanece igual)
 
-        # Obtener datos de criptomonedas
-        df_crypto = get_crypto_data()
+        # Obtener datos de USDT
+        df_usdt, mejor_compra, mejor_venta = get_usdt_data()
         
-        # Crear tabla HTML para datos de criptomonedas con logos e iconos
-        crypto_rows = []
-        for _, row in df_crypto.iterrows():
-            change = row['Cambio 24h (%)']
-            icon = '▲' if change > 0 else '▼'
-            color = 'text-green-500' if change > 0 else 'text-red-500'
-            crypto_rows.append(f"""
+        # Crear tabla HTML para datos de USDT
+        usdt_rows = []
+        for _, row in df_usdt.iterrows():
+            compra_class = 'bg-green-500' if row['Exchange'] == mejor_compra['Exchange'] else ''
+            venta_class = 'bg-blue-500' if row['Exchange'] == mejor_venta['Exchange'] else ''
+            usdt_rows.append(f"""
                 <tr>
-                    <td><img src="{row['Logo']}" alt="{row['Nombre']}" class="w-8 h-8"></td>
-                    <td>{row['Nombre']}</td>
-                    <td>${row['Precio (USD)']:.2f}</td>
-                    <td class="{color}">{icon} {change:.2f}%</td>
+                    <td>{row['Exchange']}</td>
+                    <td class="{compra_class}">${row['Compra (ARS)']:.2f}</td>
+                    <td class="{venta_class}">${row['Venta (ARS)']:.2f}</td>
                 </tr>
             """)
-        tabla_crypto_html = f"""
+        tabla_usdt_html = f"""
             <table class="table-auto w-full text-left border-collapse">
                 <thead>
                     <tr>
-                        <th>Logo</th>
-                        <th>Nombre</th>
-                        <th>Precio (USD)</th>
-                        <th>Cambio 24h</th>
+                        <th>Exchange</th>
+                        <th>Compra (ARS)</th>
+                        <th>Venta (ARS)</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {''.join(crypto_rows)}
+                    {''.join(usdt_rows)}
                 </tbody>
             </table>
         """
@@ -116,8 +132,14 @@ def index():
                         {tabla_crypto_html}
                     </div>
                     <div class="card p-4 rounded-lg">
-                        <h2 class="text-xl font-semibold mb-2">Contenido Futuro</h2>
-                        <p>Aquí se añadirá contenido adicional en el futuro.</p>
+                        <h2 class="text-xl font-semibold mb-2">Cotizaciones USDT en Exchanges Argentinos</h2>
+                        {tabla_usdt_html}
+                        <div class="mt-4">
+                            <p class="font-semibold">Mejor opción para comprar USDT:</p>
+                            <p>{mejor_compra['Exchange']} a ${mejor_compra['Compra (ARS)']:.2f}</p>
+                            <p class="font-semibold mt-2">Mejor opción para vender USDT:</p>
+                            <p>{mejor_venta['Exchange']} a ${mejor_venta['Venta (ARS)']:.2f}</p>
+                        </div>
                     </div>
                 </div>
             </div>
