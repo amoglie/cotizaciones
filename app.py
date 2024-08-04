@@ -104,10 +104,12 @@ def index():
                 <div class="mb-4 text-right">
                     <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onclick="location.reload()">Actualizar</button>
                 </div>
-                <div class="card p-4 rounded-lg mb-6">
-                    <h2 class="text-xl font-semibold mb-2">Mejor opción de compra y venta de USDT</h2>
-                    <p class="text-lg">La mejor opción de compra de USDT es <span class="font-bold">{mejor_compra_usdt}</span> con un precio de <span class="font-bold">${mejor_precio_compra_usdt:.2f}</span></p>
-                    <p class="text-lg">La mejor opción de venta de USDT es <span class="font-bold">{mejor_venta_usdt}</span> con un precio de <span class="font-bold">${mejor_precio_venta_usdt:.2f}</span></p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="card p-4 rounded-lg">
+                        <h2 class="text-xl font-semibold mb-2">Mejor opción de compra y venta de USDT</h2>
+                        <p class="text-lg">La mejor opción de compra de USDT es <span class="font-bold">{mejor_compra_usdt}</span> con un precio de <span class="font-bold">${mejor_precio_compra_usdt:.2f}</span></p>
+                        <p class="text-lg">La mejor opción de venta de USDT es <span class="font-bold">{mejor_venta_usdt}</span> con un precio de <span class="font-bold">${mejor_precio_venta_usdt:.2f}</span></p>
+                    </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div class="card p-4 rounded-lg">
@@ -134,6 +136,10 @@ def index():
         </html>
         """
         return render_template_string(html)
-    
+        
     except Exception as e:
-       
+        logging.error(f”Error en el servidor: {e}”)
+        return jsonify({‘error’: ‘Error en el servidor’}), 500
+
+        if name == ‘main’:
+            app.run(host=‘0.0.0.0’, port=8000)
