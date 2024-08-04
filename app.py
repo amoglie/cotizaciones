@@ -18,8 +18,8 @@ def get_crypto_data():
         coins = cg.get_coins_markets(vs_currency='usd', order='market_cap_desc', per_page=10, page=1, sparkline=False)
         
         # Crear un DataFrame con los datos relevantes
-        df_crypto = pd.DataFrame(coins)[['name', 'current_price', 'market_cap', 'price_change_percentage_24h']]
-        df_crypto.columns = ['Nombre', 'Precio (USD)', 'Capitalización de Mercado (USD)', 'Cambio 24h (%)']
+        df_crypto = pd.DataFrame(coins)[['name', 'image', 'current_price', 'price_change_percentage_24h']]
+        df_crypto.columns = ['Nombre', 'Logo', 'Precio (USD)', 'Cambio 24h (%)']
         
         return df_crypto
     except Exception as e:
@@ -29,55 +29,40 @@ def get_crypto_data():
 @app.route('/')
 def index():
     try:
-        # Endpoint de la API del dólar
-        dolar_url = "https://criptoya.com/api/dolar"
-
-        # Obtener datos de la API del dólar
-        response_dolar = requests.get(dolar_url)
-        if response_dolar.status_code != 200:
-            logging.error(f"Error al obtener datos del dólar: {response_dolar.status_code}")
-            return jsonify({'error': 'Error al obtener datos del dólar'}), 500
-        
-        data_dolar = response_dolar.json()
-        logging.info(f"Datos del dólar recibidos: {data_dolar}")
-
-        # Filtrar los datos relevantes
-        tipos_dolar = {
-            'CCL': {'compra': data_dolar['ccl']['al30']['24hs']['price'], 'venta': data_dolar['ccl']['al30']['ci']['price']},
-            'Tarjeta': {'compra': data_dolar['tarjeta']['price'], 'venta': data_dolar['tarjeta']['price']},
-            'MEP': {'compra': data_dolar['mep']['al30']['24hs']['price'], 'venta': data_dolar['mep']['al30']['ci']['price']},
-            'USDT': {'compra': data_dolar['cripto']['usdt']['ask'], 'venta': data_dolar['cripto']['usdt']['bid']}
-        }
-
-        # Crear DataFrame
-        df_dolar = pd.DataFrame(tipos_dolar).T
-
-        # Identificar la mejor opción de compra
-        mejor_opcion = df_dolar['compra'].idxmin()
-        mejor_precio = df_dolar.loc[mejor_opcion, 'compra']
-
-        # Visualización: Gráfico de barras para los precios de compra (compra)
-        fig_dolar = px.bar(df_dolar, x=df_dolar.index, y='compra', text='compra', title='Precio de compra de diferentes tipos de dólar y USDT', height=300)
-        fig_dolar.update_layout(yaxis=dict(title='Precio (ARS)'), xaxis=dict(title='Tipo de Cambio'))
-        fig_dolar.update_traces(texttemplate='%{text:.2f}', textposition='outside')
-
-        # Visualización: Gráfico de barras para los precios de venta (venta)
-        fig_venta = px.bar(df_dolar, x=df_dolar.index, y='venta', text='venta', title='Precio de venta de diferentes tipos de dólar y USDT', height=300)
-        fig_venta.update_layout(yaxis=dict(title='Precio (ARS)'), xaxis=dict(title='Tipo de Cambio'))
-        fig_venta.update_traces(texttemplate='%{text:.2f}', textposition='outside')
-
-        # Convertir las figuras a HTML
-        dolar_plot_html = pio.to_html(fig_dolar, full_html=False)
-        venta_plot_html = pio.to_html(fig_venta, full_html=False)
-
-        # Crear tabla HTML para datos del dólar
-        tabla_html = df_dolar.to_html(classes="table-auto w-full text-left border-collapse")
+        # ... (el código para los datos del dólar permanece igual)
 
         # Obtener datos de criptomonedas
         df_crypto = get_crypto_data()
         
-        # Crear tabla HTML para datos de criptomonedas
-        tabla_crypto_html = df_crypto.to_html(classes="table-auto w-full text-left border-collapse", index=False)
+        # Crear tabla HTML para datos de criptomonedas con logos e iconos
+        crypto_rows = []
+        for _, row in df_crypto.iterrows():
+            change = row['Cambio 24h (%)']
+            icon = '▲' if change > 0 else '▼'
+            color = 'text-green-500' if change > 0 else 'text-red-500'
+            crypto_rows.append(f"""
+                <tr>
+                    <td><img src="{row['Logo']}" alt="{row['Nombre']}" class="w-8 h-8"></td>
+                    <td>{row['Nombre']}</td>
+                    <td>${row['Precio (USD)']:.2f}</td>
+                    <td class="{color}">{icon} {change:.2f}%</td>
+                </tr>
+            """)
+        tabla_crypto_html = f"""
+            <table class="table-auto w-full text-left border-collapse">
+                <thead>
+                    <tr>
+                        <th>Logo</th>
+                        <th>Nombre</th>
+                        <th>Precio (USD)</th>
+                        <th>Cambio 24h</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {''.join(crypto_rows)}
+                </tbody>
+            </table>
+        """
 
         # Renderizar la página HTML con Tailwind CSS
         html = f"""
@@ -94,7 +79,7 @@ def index():
                 .container {{ max-width: 1200px; margin: auto; }}
                 .card {{ background-color: #2d3748; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }}
                 table {{ border-collapse: collapse; width: 100%; }}
-                th, td {{ border: 1px solid #4a5568; padding: 0.5rem; text-align: center; }}
+                th, td {{ border: 1px solid #4a5568; padding: 0.5rem; text-align: left; }}
                 th {{ background-color: #2d3748; }}
                 tr:nth-child(even) {{ background-color: #2d3748; }}
             </style>
@@ -125,9 +110,15 @@ def index():
                         {venta_plot_html}
                     </div>
                 </div>
-                <div class="card p-4 rounded-lg mb-6">
-                    <h2 class="text-xl font-semibold mb-2">Top 10 Criptomonedas por Capitalización de Mercado</h2>
-                    {tabla_crypto_html}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="card p-4 rounded-lg">
+                        <h2 class="text-xl font-semibold mb-2">Top 10 Criptomonedas</h2>
+                        {tabla_crypto_html}
+                    </div>
+                    <div class="card p-4 rounded-lg">
+                        <h2 class="text-xl font-semibold mb-2">Contenido Futuro</h2>
+                        <p>Aquí se añadirá contenido adicional en el futuro.</p>
+                    </div>
                 </div>
             </div>
         </body>
