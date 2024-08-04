@@ -2,7 +2,6 @@ from flask import Flask, render_template_string, jsonify
 import requests
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import plotly.io as pio
 import logging
 
@@ -81,6 +80,9 @@ def index():
         <body>
             <div class="container p-4">
                 <h1 class="text-2xl font-bold mb-4">Dashboard</h1>
+                <div class="mb-4 text-right">
+                    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onclick="location.reload()">Refrescar</button>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div class="card p-4 rounded-lg">
                         <h2 class="text-xl font-semibold mb-2">Precio de compra de diferentes tipos de dólar y USDT</h2>
