@@ -4,11 +4,27 @@ import pandas as pd
 import plotly.express as px
 import plotly.io as pio
 import logging
+from pycoingecko import CoinGeckoAPI
 
 app = Flask(__name__)
+cg = CoinGeckoAPI()
 
 # Configuración de registros
 logging.basicConfig(level=logging.INFO)
+
+def get_crypto_data():
+    try:
+        # Obtener las 10 principales criptomonedas por capitalización de mercado
+        coins = cg.get_coins_markets(vs_currency='usd', order='market_cap_desc', per_page=10, page=1, sparkline=False)
+        
+        # Crear un DataFrame con los datos relevantes
+        df_crypto = pd.DataFrame(coins)[['name', 'current_price', 'market_cap', 'price_change_percentage_24h']]
+        df_crypto.columns = ['Nombre', 'Precio (USD)', 'Capitalización de Mercado (USD)', 'Cambio 24h (%)']
+        
+        return df_crypto
+    except Exception as e:
+        logging.error(f"Error al obtener datos de criptomonedas: {e}")
+        return pd.DataFrame()
 
 @app.route('/')
 def index():
@@ -54,8 +70,14 @@ def index():
         dolar_plot_html = pio.to_html(fig_dolar, full_html=False)
         venta_plot_html = pio.to_html(fig_venta, full_html=False)
 
-        # Crear tabla HTML
+        # Crear tabla HTML para datos del dólar
         tabla_html = df_dolar.to_html(classes="table-auto w-full text-left border-collapse")
+
+        # Obtener datos de criptomonedas
+        df_crypto = get_crypto_data()
+        
+        # Crear tabla HTML para datos de criptomonedas
+        tabla_crypto_html = df_crypto.to_html(classes="table-auto w-full text-left border-collapse", index=False)
 
         # Renderizar la página HTML con Tailwind CSS
         html = f"""
@@ -85,7 +107,7 @@ def index():
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div class="card p-4 rounded-lg">
-                        <h2 class="text-xl font-semibold mb-2">Cotizaciones</h2>
+                        <h2 class="text-xl font-semibold mb-2">Cotizaciones del Dólar</h2>
                         {tabla_html}
                     </div>
                     <div class="card p-4 rounded-lg">
@@ -93,7 +115,7 @@ def index():
                         <p class="text-lg">La mejor opción de compra es <span class="font-bold">{mejor_opcion}</span> con un precio de <span class="font-bold">${mejor_precio:.2f}</span></p>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div class="card p-4 rounded-lg">
                         <h2 class="text-xl font-semibold mb-2">Precio de compra de diferentes tipos de dólar y USDT</h2>
                         {dolar_plot_html}
@@ -102,6 +124,10 @@ def index():
                         <h2 class="text-xl font-semibold mb-2">Precio de venta de diferentes tipos de dólar y USDT</h2>
                         {venta_plot_html}
                     </div>
+                </div>
+                <div class="card p-4 rounded-lg mb-6">
+                    <h2 class="text-xl font-semibold mb-2">Top 10 Criptomonedas por Capitalización de Mercado</h2>
+                    {tabla_crypto_html}
                 </div>
             </div>
         </body>
